@@ -1,0 +1,137 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+
+public class TicTacToe extends JFrame implements ActionListener {
+
+    private JButton[] buttons = new JButton[9];
+    private String currentPlayer = "X";
+    private boolean gameActive = true;
+
+    public TicTacToe() {
+        setTitle("Tic Tac Toe");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(300, 300);
+        setLayout(new GridLayout(3, 3)); // Arrange buttons in a 3x3 grid
+        setLocationRelativeTo(null); // Center the window on the screen
+
+        initializeButtons();
+    }
+
+    private void initializeButtons() {
+        for (int i = 0; i < 9; i++) {
+            buttons[i] = new JButton(""); // Create an empty button
+            buttons[i].setFont(new Font("Arial", Font.BOLD, 60)); // Make the X and O large
+            buttons[i].addActionListener(this); // Listen for clicks on the button
+            add(buttons[i]); // Add the button to the game window
+        }
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (!gameActive) {
+            return; // Don't do anything if the game is over
+        }
+
+        JButton clickedButton = (JButton) e.getSource(); // Get the button that was clicked
+
+        if (clickedButton.getText().equals("")) { // Only allow clicking on empty buttons
+            clickedButton.setText(currentPlayer);
+            clickedButton.setForeground(currentPlayer.equals("X") ? Color.BLUE : Color.RED); // Make X blue and O red
+            checkForWin();
+            switchPlayer();
+        }
+    }
+
+    private void switchPlayer() {
+        currentPlayer = (currentPlayer.equals("X")) ? "O" : "X";
+    }
+
+    private void checkForWin() {
+        String[] board = new String[9];
+        for (int i = 0; i < 9; i++) {
+            board[i] = buttons[i].getText();
+        }
+
+        // Check rows
+        for (int i = 0; i < 3; i++) {
+            if (board[i * 3].equals(board[i * 3 + 1]) &&
+                board[i * 3 + 1].equals(board[i * 3 + 2]) &&
+                !board[i * 3].equals("")) {
+                announceWinner(board[i * 3]);
+                return;
+            }
+        }
+
+        // Check columns
+        for (int i = 0; i < 3; i++) {
+            if (board[i].equals(board[i + 3]) &&
+                board[i + 3].equals(board[i + 6]) &&
+                !board[i].equals("")) {
+                announceWinner(board[i]);
+                return;
+            }
+        }
+
+        // Check diagonals
+        if (board[0].equals(board[4]) &&
+            board[4].equals(board[8]) &&
+            !board[0].equals("")) {
+            announceWinner(board[0]);
+            return;
+        }
+
+        if (board[2].equals(board[4]) &&
+            board[4].equals(board[6]) &&
+            !board[2].equals("")) {
+            announceWinner(board[2]);
+            return;
+        }
+
+        // Check for a tie
+        boolean tie = true;
+        for (String s : board) {
+            if (s.equals("")) {
+                tie = false;
+                break;
+            }
+        }
+        if (tie) {
+            announceTie();
+        }
+    }
+
+    private void announceWinner(String winner) {
+        JOptionPane.showMessageDialog(this, "Player " + winner + " wins!");
+        gameActive = false;
+        resetGame();
+    }
+
+    private void announceTie() {
+        JOptionPane.showMessageDialog(this, "It's a tie!");
+        gameActive = false;
+        resetGame();
+    }
+
+    private void resetGame() {
+        int playAgain = JOptionPane.showConfirmDialog(this, "Play again?", "Reset", JOptionPane.YES_NO_OPTION);
+        if (playAgain == JOptionPane.YES_OPTION) {
+            for (JButton button : buttons) {
+                button.setText("");
+                button.setForeground(Color.BLACK); // Reset text color
+            }
+            currentPlayer = "X";
+            gameActive = true;
+        } else {
+            System.exit(0); // Close the application
+        }
+    }
+
+    public static void main(String[] args) {
+        // Use SwingUtilities to make sure GUI updates happen on the Event Dispatch Thread
+        SwingUtilities.invokeLater(() -> {
+            TicTacToe game = new TicTacToe();
+            game.setVisible(true);
+        });
+    }
+}
