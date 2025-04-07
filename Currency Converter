@@ -1,203 +1,86 @@
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.util.Random;
+import java.io.IOException;
+import java.io.PrintWriter;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
-public class BrickBreaker extends JPanel implements ActionListener, KeyListener {
+public class CurrencyConverterServlet extends HttpServlet {
 
-    private int ballX = 150;
-    private int ballY = 350;
-    private int ballXDir = -1;
-    private int ballYDir = -2;
-    private int paddleX = 150;
-    private final int paddleY = 550;
-    private final int paddleWidth = 100;
-    private final int paddleHeight = 10;
-    private int score = 0;
-    private boolean play = false;
-    private Timer timer;
-    private final int delay = 8;
-    private int[][] bricks;
-    private final int brickWidth = 70;
-    private final int brickHeight = 20;
-    private int totalBricks;
+    // In a real application, you'd fetch these from a more dynamic source
+    private static final double USD_TO_INR_RATE = 75.0; // Example rate
 
-    public BrickBreaker() {
-        bricks = new int[3][7]; // 3 rows, 7 columns of bricks
-        totalBricks = 3 * 7;
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 7; j++) {
-                bricks[i][j] = 1; // 1 indicates the brick is present
-            }
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String fromCurrency = request.getParameter("fromCurrency");
+        String toCurrency = request.getParameter("toCurrency");
+        String amountStr = request.getParameter("amount");
+
+        double amount = 0;
+        try {
+            amount = Double.parseDouble(amountStr);
+        } catch (NumberFormatException e) {
+            // Handle invalid input
+            response.getWriter().println("Invalid amount entered.");
+            return;
         }
 
-        addKeyListener(this);
-        setFocusable(true);
-        setFocusTraversalKeysEnabled(false);
-        timer = new Timer(delay, this);
-        timer.start();
-    }
+        double convertedAmount = 0;
 
-    public void paintComponent(Graphics g) {
-        super.paintComponent(g);
-
-        // Background
-        g.setColor(Color.BLACK);
-        g.fillRect(0, 0, getWidth(), getHeight());
-
-        // Bricks
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 7; j++) {
-                if (bricks[i][j] > 0) {
-                    g.setColor(Color.GREEN);
-                    g.fillRect(j * brickWidth + 80, i * brickHeight + 50, brickWidth, brickHeight);
-
-                    // Optional: Add border to bricks
-                    g.setColor(Color.BLACK);
-                    g.fillRect(j * brickWidth + 80, i * brickHeight + 50, brickWidth, 2);
-                    g.fillRect(j * brickWidth + 80, i * brickHeight + 50 + brickHeight - 2, brickWidth, 2);
-                    g.fillRect(j * brickWidth + 80, i * brickHeight + 50, 2, brickHeight);
-                    g.fillRect(j * brickWidth + 80 + brickWidth - 2, i * brickHeight + 50, 2, brickHeight);
-                }
-            }
+        if ("USD".equalsIgnoreCase(fromCurrency) && "INR".equalsIgnoreCase(toCurrency)) {
+            convertedAmount = amount * USD_TO_INR_RATE;
+        } else if ("INR".equalsIgnoreCase(fromCurrency) && "USD".equalsIgnoreCase(toCurrency)) {
+            convertedAmount = amount / USD_TO_INR_RATE;
+        } else {
+            // Handle other currency pairs or unsupported conversions
+            response.getWriter().println("Conversion between " + fromCurrency + " and " + toCurrency + " is not currently supported.");
+            return;
         }
 
-        // Paddle
-        g.setColor(Color.CYAN);
-        g.fillRect(paddleX, paddleY, paddleWidth, paddleHeight);
-
-        // Ball
-        g.setColor(Color.YELLOW);
-        g.fillOval(ballX, ballY, 20, 20);
-
-        // Score
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 20));
-        g.drawString("Score: " + score, 10, 30);
-
-        // Game Over
-        if (totalBricks <= 0 || ballY > getHeight()) {
-            play = false;
-            ballXDir = 0;
-            ballYDir = 0;
-            g.setColor(Color.RED);
-            g.setFont(new Font("Arial", Font.BOLD, 30));
-            g.drawString("Game Over! Score: " + score, getWidth() / 2 - 150, getHeight() / 2);
-            g.setFont(new Font("Arial", Font.PLAIN, 20));
-            g.drawString("Press Enter to Restart", getWidth() / 2 - 120, getHeight() / 2 + 30);
-        }
-
-        g.dispose();
+        response.setContentType("text/html");
+        PrintWriter out = response.getWriter();
+        out.println("<html><body>");
+        out.println("<h2>Currency Conversion Result</h2>");
+        out.println("<p>" + amount + " " + fromCurrency + " is equal to " + String.format("%.2f", convertedAmount) + " " + toCurrency + "</p>");
+        out.println("<p><a href='index.html'>Go back</a></p>"); // Link to your input form
+        out.println("</body></html>");
     }
 
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        timer.start();
-        if (play) {
-            // Ball - Paddle collision
-            Rectangle ballRect = new Rectangle(ballX, ballY, 20, 20);
-            Rectangle paddleRect = new Rectangle(paddleX, paddleY, paddleWidth, paddleHeight);
-            if (ballRect.intersects(paddleRect)) {
-                ballYDir = -ballYDir; // Reverse vertical direction
-            }
-
-            // Ball - Brick collision
-            A: for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 7; j++) {
-                    if (bricks[i][j] > 0) {
-                        Rectangle brickRect = new Rectangle(j * brickWidth + 80, i * brickHeight + 50, brickWidth, brickHeight);
-                        if (ballRect.intersects(brickRect)) {
-                            bricks[i][j] = 0;
-                            totalBricks--;
-                            score += 5;
-                            ballYDir = -ballYDir; // Reverse vertical direction
-                            break A; // Move to the next ball movement
-                        }
-                    }
-                }
-            }
-
-            ballX += ballXDir;
-            ballY += ballYDir;
-
-            // Border collisions
-            if (ballX < 0 || ballX > getWidth() - 20) {
-                ballXDir = -ballXDir; // Reverse horizontal direction
-            }
-            if (ballY < 0) {
-                ballYDir = -ballYDir; // Reverse vertical direction
-            }
-            // If ball goes below paddle, game over is handled in paintComponent
-
-            repaint(); // Redraw the screen
-        }
-    }
-
-    @Override
-    public void keyPressed(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-            if (paddleX >= getWidth() - paddleWidth) {
-                paddleX = getWidth() - paddleWidth;
-            } else {
-                moveRight();
-            }
-        }
-        if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-            if (paddleX < 0) {
-                paddleX = 0;
-            } else {
-                moveLeft();
-            }
-        }
-        if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-            if (!play) {
-                play = true;
-                ballX = 150;
-                ballY = 350;
-                ballXDir = -1;
-                ballYDir = -2;
-                paddleX = 150;
-                score = 0;
-                totalBricks = 3 * 7;
-                bricks = new int[3][7];
-                for (int i = 0; i < 3; i++) {
-                    for (int j = 0; j < 7; j++) {
-                        bricks[i][j] = 1;
-                    }
-                }
-                repaint();
-            }
-        }
-    }
-
-    public void moveRight() {
-        play = true;
-        paddleX += 20;
-    }
-
-    public void moveLeft() {
-        play = true;
-        paddleX -= 20;
-    }
-
-    @Override
-    public void keyTyped(KeyEvent e) {
-        // Not used in this game
-    }
-
-    @Override
-    public void keyReleased(KeyEvent e) {
-        // Not used in this game
-    }
-
-    public static void main(String[] args) {
-        JFrame frame = new JFrame();
-        BrickBreaker game = new BrickBreaker();
-        frame.setBounds(10, 10, 700, 600);
-        frame.setTitle("Brick Breaker");
-        frame.setResizable(false);
-        frame.setVisible(true);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.add(game);
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        // You might use doGet to serve the initial HTML form
+        response.sendRedirect("index.html"); // Assuming your HTML form is named index.html
     }
 }
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+HTML:
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Currency Converter</title>
+</head>
+<body>
+    <h1>Currency Converter</h1>
+    <form action="currencyConverter" method="post">
+        <label for="amount">Amount:</label>
+        <input type="text" id="amount" name="amount" required><br><br>
+
+        <label for="fromCurrency">From:</label>
+        <select id="fromCurrency" name="fromCurrency">
+            <option value="USD">US Dollar</option>
+            <option value="INR">Indian Rupee</option>
+            </select><br><br>
+
+        <label for="toCurrency">To:</label>
+        <select id="toCurrency" name="toCurrency">
+            <option value="INR">Indian Rupee</option>
+            <option value="USD">US Dollar</option>
+        </select><br><br>
+
+        <input type="submit" value="Convert">
+    </form>
+</body>
+</html>
