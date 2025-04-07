@@ -1,0 +1,46 @@
+import java.util.Random;
+import java.util.Scanner;
+
+public class NumberGuessingGame {
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        Random random = new Random();
+
+        // Define the range for the secret number
+        int lowerBound = 1;
+        int upperBound = 100;
+        int secretNumber = random.nextInt(upperBound - lowerBound + 1) + lowerBound;
+
+        // Define the number of attempts
+        int maxAttempts = 5;
+        int attemptsLeft = maxAttempts;
+
+        System.out.println("Welcome to the Number Guessing Game!");
+        System.out.println("I'm thinking of a number between " + lowerBound + " and " + upperBound + ".");
+        System.out.println("You have " + maxAttempts + " attempts to guess it.");
+
+        while (attemptsLeft > 0) {
+            System.out.print("Enter your guess: ");
+            int guess = scanner.nextInt();
+            scanner.nextLine(); // Consume the newline character
+
+            attemptsLeft--;
+
+            if (guess == secretNumber) {
+                System.out.println("Congratulations! You guessed the number " + secretNumber + " correctly in " + (maxAttempts - attemptsLeft) + " attempts!");
+                break; // Exit the loop because the player won
+            } else if (guess < secretNumber) {
+                System.out.println("Your guess is too low. You have " + attemptsLeft + " attempts left.");
+            } else {
+                System.out.println("Your guess is too high. You have " + attemptsLeft + " attempts left.");
+            }
+
+            if (attemptsLeft == 0) {
+                System.out.println("You ran out of attempts! The secret number was " + secretNumber + ".");
+            }
+        }
+
+        scanner.close();
+    }
+}
